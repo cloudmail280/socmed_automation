@@ -4,7 +4,7 @@
 <section class="card">
     <h2>Jadwalkan Posting</h2>
     {% if products %}
-    <form method="post" action="/schedule">
+    <form method="post" action="/schedule" id="schedule-form">
         <fieldset>
             <legend>Pilih produk (status ready)</legend>
             {% for p in products %}
@@ -18,17 +18,21 @@
 
         <fieldset>
             <legend>Platform</legend>
-            <label><input type="checkbox" name="platforms" value="threads" checked> Threads</label>
-            <label><input type="checkbox" name="platforms" value="twitter"> X (Twitter)</label>
+            <label><input type="checkbox" name="platforms" value="threads" checked> Threads (500 char)</label>
+            <label><input type="checkbox" name="platforms" value="twitter"> X (Twitter) (280 char)</label>
         </fieldset>
 
         <label for="scheduled_at">Waktu Posting</label>
-        <input id="scheduled_at" type="datetime-local" name="scheduled_at" required>
+        <input id="scheduled_at" type="datetime-local" name="scheduled_at">
+        <small>Kosongkan & klik "Post Sekarang" untuk publish langsung.</small>
 
         <label for="caption">Caption (opsional — kosongkan untuk pakai template default)</label>
-        <textarea id="caption" name="caption" rows="3" placeholder="Kosongkan untuk auto: {title}\n{price}\n\nCheck it out: {url}"></textarea>
+        <textarea id="caption" name="caption" rows="3" placeholder="{title}&#10;{price}&#10;&#10;Check it out: {url}"></textarea>
 
-        <button type="submit">Jadwalkan</button>
+        <div style="display:flex; gap:.5rem;">
+            <button type="submit">Jadwalkan</button>
+            <button type="submit" name="post_now" value="1" class="secondary">Post Sekarang</button>
+        </div>
     </form>
     {% else %}
     <p><em>Belum ada produk ready. Tambahkan & tunggu scrape selesai di halaman <a href="/">Produk</a>.</em></p>
@@ -39,19 +43,30 @@
     <h2>Jadwal Terbaru</h2>
     <table>
         <thead>
-        <tr><th>#</th><th>Produk</th><th>Platform</th><th>Waktu</th><th>Status</th></tr>
+        <tr><th>#</th><th>Produk</th><th>Platform</th><th>Waktu</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
         {% for s in scheduled %}
         <tr>
-            <td>{{ s.id }}</td>
+            <td><a href="/schedule/{{ s.id }}">{{ s.id }}</a></td>
             <td>{{ s.product.title or s.product.url }}</td>
             <td>{{ s.platform.value }}</td>
             <td>{{ s.scheduled_at.strftime("%Y-%m-%d %H:%M") }}</td>
             <td class="status status-{{ s.status.value }}">{{ s.status.value }}</td>
+            <td>
+                {% if s.status.value == "failed" %}
+                <form method="post" action="/schedule/{{ s.id }}/retry" style="display:inline">
+                    <button type="submit">retry</button>
+                </form>
+                {% endif %}
+                <form method="post" action="/schedule/{{ s.id }}/delete" style="display:inline"
+                      onsubmit="return confirm('Hapus jadwal ini?')">
+                    <button type="submit" class="danger">hapus</button>
+                </form>
+            </td>
         </tr>
         {% else %}
-        <tr><td colspan="5"><em>Belum ada jadwal.</em></td></tr>
+        <tr><td colspan="6"><em>Belum ada jadwal.</em></td></tr>
         {% endfor %}
         </tbody>
     </table>

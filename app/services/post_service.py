@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import (
+    Platform,
     PostLog,
     PostStatus,
     Product,
@@ -19,8 +20,14 @@ from app.scrapers import detect_source, get_scraper
 
 log = logging.getLogger(__name__)
 
-# Batas karakter kira-kira (X = 280, Threads = 500). Kita conservative.
-MAX_CAPTION_LEN = 270
+# Batas karakter per platform. Threads 500, X 280.
+# Kita kurangi sedikit untuk margin aman (emoji counts differently, dsb.)
+CAPTION_LIMITS: dict[Platform, int] = {
+    Platform.threads: 490,
+    Platform.twitter: 275,
+}
+
+DEFAULT_TEMPLATE = "{title}\n{price}\n\nCheck it out: {url}"
 
 
 def scrape_product(product_id: int) -> None:
@@ -50,17 +57,38 @@ def scrape_product(product_id: int) -> None:
         db.commit()
 
 
-def build_caption(product: Product, template: str | None = None) -> str:
-    """Buat caption default. `template` boleh pakai placeholder {title} {price} {url}."""
-    tpl = template or "{title}\n{price}\n\nCheck it out: {url}"
-    text = tpl.format(
-        title=product.title or "",
-        price=product.price or "",
-        url=product.url,
-    )
-    if len(text) > MAX_CAPTION_LEN:
-        text = text[: MAX_CAPTION_LEN - 1].rstrip() + "…"
-    return text
+def build_caption(
+    product: Product,
+    platform: Platform,
+    template: str | None = None,
+) -> str:
+    """Buat caption untuk platform tertentu.
+
+    - Placeholder: {title}, {price}, {url}
+    - Jika kepanjangan: pangkas **{title}** lebih dulu (URL & price tetap) supaya
+      link tetap bisa diklik. Ini lebih baik daripada potong di ekor.
+    """
+    tpl = template or DEFAULT_TEMPLATE
+    limit = CAPTION_LIMITS.get(platform, 275)
+
+    title = product.title or ""
+    price = product.price or ""
+    url = product.url
+
+    # Coba dulu dengan title full
+    text = tpl.format(title=title, price=price, url=url)
+    if len(text) <= limit:
+        return text
+
+    # Hitung budget untuk title: limit - panjang semua field non-title dalam template
+    fixed = tpl.format(title="", price=price, url=url)
+    budget = limit - len(fixed) - 1  # -1 untuk ellipsis
+    if budget < 10:
+        # Template-nya sudah kepanjangan bahkan tanpa title — fallback potong ekor
+        return text[: limit - 1].rstrip() + "…"
+
+    trimmed_title = title[:budget].rstrip() + "…"
+    return tpl.format(title=trimmed_title, price=price, url=url)
 
 
 def publish_scheduled(scheduled_post_id: int) -> None:
@@ -76,7 +104,7 @@ def publish_scheduled(scheduled_post_id: int) -> None:
             db.commit()
             return
 
-        caption = sp.caption or build_caption(product)
+        caption = sp.caption or build_caption(product, sp.platform)
         publisher = get_publisher(sp.platform)
         result = publisher.post(caption, image_url=product.image_url)
 

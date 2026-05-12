@@ -57,3 +57,8 @@ def enqueue_publish(scheduled_post_id: int, run_at: datetime) -> None:
         id=f"publish-{scheduled_post_id}",
         replace_existing=True,
     )
+
+
+def enqueue_publish_now(scheduled_post_id: int) -> None:
+    """Schedule publish untuk jalan segera (dipakai 'Post Now' & retry)."""
+    enqueue_publish(scheduled_post_id, datetime.utcnow())

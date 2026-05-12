@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Jadwal #{{ sp.id }} — Socmed Automation{% endblock %}
+{% block content %}
+<section class="card">
+    <p><a href="/schedule">← kembali ke daftar</a></p>
+    <h2>Jadwal #{{ sp.id }}</h2>
+    <table>
+        <tr><th>Produk</th><td>
+            {% if sp.product.image_url %}<img src="{{ sp.product.image_url }}" alt="" width="60">{% endif %}
+            <a href="{{ sp.product.url }}" target="_blank" rel="noopener">{{ sp.product.title or sp.product.url }}</a>
+        </td></tr>
+        <tr><th>Harga</th><td>{{ sp.product.price or "-" }}</td></tr>
+        <tr><th>Platform</th><td>{{ sp.platform.value }}</td></tr>
+        <tr><th>Waktu</th><td>{{ sp.scheduled_at.strftime("%Y-%m-%d %H:%M") }}</td></tr>
+        <tr><th>Status</th><td class="status status-{{ sp.status.value }}">{{ sp.status.value }}</td></tr>
+        <tr><th>Caption</th><td><pre style="white-space:pre-wrap; margin:0">{{ sp.caption or "(default template)" }}</pre></td></tr>
+    </table>
+
+    <div style="margin-top:1rem;">
+        {% if sp.status.value == "failed" %}
+        <form method="post" action="/schedule/{{ sp.id }}/retry" style="display:inline">
+            <button type="submit">Retry sekarang</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/schedule/{{ sp.id }}/delete" style="display:inline"
+              onsubmit="return confirm('Hapus jadwal ini?')">
+            <button type="submit" class="danger">Hapus</button>
+        </form>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Log Percobaan ({{ logs|length }})</h2>
+    <table>
+        <thead>
+        <tr><th>#</th><th>Waktu</th><th>Hasil</th><th>Remote ID</th><th>Pesan</th></tr>
+        </thead>
+        <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.id }}</td>
+            <td>{{ log.attempted_at.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+            <td class="status status-{{ 'posted' if log.success else 'failed' }}">
+                {{ "success" if log.success else "failed" }}
+            </td>
+            <td>{{ log.remote_post_id or "-" }}</td>
+            <td><small>{{ log.message or "-" }}</small></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5"><em>Belum ada percobaan.</em></td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

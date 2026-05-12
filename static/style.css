@@ -34,6 +34,9 @@ button {
     background: #3b82f6; color: #fff; cursor: pointer; font-weight: 600;
 }
 button.danger { background: #ef4444; padding: .3rem .6rem; margin: 0; font-size: .85rem; }
+button.secondary { background: #6b7280; }
+small { color: #6b7280; display: block; margin-top: .25rem; }
+pre { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f9fafb; padding: .5rem; border-radius: 4px; }
 table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
 th, td { padding: .5rem; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; }
 img { border-radius: 4px; }
