@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Produk — Socmed Automation{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>Tambah Produk (batch)</h2>
+    <form method="post" action="/products">
+        <label for="urls">Satu URL per baris (Shopee atau TikTok)</label>
+        <textarea id="urls" name="urls" rows="6" placeholder="https://shopee.co.id/...&#10;https://www.tiktok.com/..."></textarea>
+        <button type="submit">Tambahkan & Scrape</button>
+    </form>
+</section>
+
+<section class="card">
+    <h2>Daftar Produk</h2>
+    <table>
+        <thead>
+        <tr><th>#</th><th>Gambar</th><th>Judul</th><th>Harga</th><th>Source</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for p in products %}
+        <tr>
+            <td>{{ p.id }}</td>
+            <td>{% if p.image_url %}<img src="{{ p.image_url }}" alt="" width="60">{% endif %}</td>
+            <td><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.title or p.url }}</a></td>
+            <td>{{ p.price or "-" }}</td>
+            <td>{{ p.source.value }}</td>
+            <td class="status status-{{ p.status.value }}">{{ p.status.value }}{% if p.error %}<br><small>{{ p.error }}</small>{% endif %}</td>
+            <td>
+                <form method="post" action="/products/{{ p.id }}/delete" onsubmit="return confirm('Hapus produk ini?')">
+                    <button type="submit" class="danger">hapus</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7"><em>Belum ada produk. Tambahkan di atas.</em></td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

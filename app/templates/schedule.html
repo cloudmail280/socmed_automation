@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Jadwal — Socmed Automation{% endblock %}
+{% block content %}
+<section class="card">
+    <h2>Jadwalkan Posting</h2>
+    {% if products %}
+    <form method="post" action="/schedule">
+        <fieldset>
+            <legend>Pilih produk (status ready)</legend>
+            {% for p in products %}
+            <label class="product-check">
+                <input type="checkbox" name="product_ids" value="{{ p.id }}">
+                {% if p.image_url %}<img src="{{ p.image_url }}" alt="" width="40">{% endif %}
+                <span>{{ p.title or p.url }} — {{ p.price or "-" }}</span>
+            </label>
+            {% endfor %}
+        </fieldset>
+
+        <fieldset>
+            <legend>Platform</legend>
+            <label><input type="checkbox" name="platforms" value="threads" checked> Threads</label>
+            <label><input type="checkbox" name="platforms" value="twitter"> X (Twitter)</label>
+        </fieldset>
+
+        <label for="scheduled_at">Waktu Posting</label>
+        <input id="scheduled_at" type="datetime-local" name="scheduled_at" required>
+
+        <label for="caption">Caption (opsional — kosongkan untuk pakai template default)</label>
+        <textarea id="caption" name="caption" rows="3" placeholder="Kosongkan untuk auto: {title}\n{price}\n\nCheck it out: {url}"></textarea>
+
+        <button type="submit">Jadwalkan</button>
+    </form>
+    {% else %}
+    <p><em>Belum ada produk ready. Tambahkan & tunggu scrape selesai di halaman <a href="/">Produk</a>.</em></p>
+    {% endif %}
+</section>
+
+<section class="card">
+    <h2>Jadwal Terbaru</h2>
+    <table>
+        <thead>
+        <tr><th>#</th><th>Produk</th><th>Platform</th><th>Waktu</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+        {% for s in scheduled %}
+        <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.product.title or s.product.url }}</td>
+            <td>{{ s.platform.value }}</td>
+            <td>{{ s.scheduled_at.strftime("%Y-%m-%d %H:%M") }}</td>
+            <td class="status status-{{ s.status.value }}">{{ s.status.value }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5"><em>Belum ada jadwal.</em></td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
