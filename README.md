@@ -47,6 +47,30 @@ Buka http://localhost:8000
 3. Generate API Key, API Secret, Access Token, Access Token Secret
 4. Isi `X_*` di `.env`
 
+## Basic Auth (opsional)
+
+Set `AUTH_USERNAME` dan `AUTH_PASSWORD` di `.env` untuk lindungi web UI dengan
+HTTP Basic Auth. Kalau keduanya kosong, auth dimatikan (dev mode). Path
+`/healthz` dan `/static/*` selalu accessible tanpa auth.
+
+## Retry
+
+Scraper (Shopee/TikTok) dan publisher (Threads/X) memakai decorator
+`app.utils.retry` — 3 attempts dengan exponential backoff + jitter, hanya
+untuk error network/timeout (transient). Error client seperti 4xx / kredensial
+invalid tidak di-retry.
+
+## Testing
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+Tes menggunakan HTML/JSON fixture (`tests/fixtures/`) dan `httpx.MockTransport`
+untuk Shopee — jadi cepat & tidak hit network. Scraper TikTok diuji di level
+parsing HTML (tanpa Playwright).
+
 ## Catatan hukum & teknis
 
 - Scraping Shopee/TikTok **melanggar ToS masing-masing platform**. Tool ini untuk pemakaian pribadi skala kecil. Untuk produksi, gunakan API resmi (Shopee Affiliate API / TikTok Shop Partner API).

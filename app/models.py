@@ -1,4 +1,6 @@
 """ORM models: Product, ScheduledPost, PostLog."""
+from __future__ import annotations
+
 from datetime import datetime
 from enum import Enum as PyEnum
 

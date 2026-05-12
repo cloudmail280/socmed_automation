@@ -4,11 +4,14 @@ TikTok Shop & video page membutuhkan rendering JavaScript, jadi kita pakai
 Playwright (headless Chromium) untuk load halaman lalu ekstrak metadata
 dari `<meta>` tag Open Graph + JSON-LD.
 
+Desain dipisah supaya testable:
+  - `_parse_html(html, url)` : murni string → ProductData (unit-testable)
+  - `_render(url)`           : I/O nyata (Playwright)
+  - `fetch(url)`             : _render → _parse_html, dibungkus retry
+
 CATATAN: TikTok punya anti-bot yang agresif. Untuk pemakaian rutin kamu
-perlu:
-  - Rotasi user-agent & proxy residential
-  - Delay antar request
-  - Fallback manual kalau gagal
+perlu rotasi user-agent & proxy residential, delay antar request, dan
+fallback manual kalau gagal.
 
 Install browser sekali: `playwright install chromium`.
 """
@@ -18,11 +21,18 @@ import json
 import re
 
 from app.scrapers.base import BaseScraper, ProductData
+from app.utils.retry import retry
 
 
 class TikTokScraper(BaseScraper):
+    # TikTok flaky — retry lebih agresif sedikit
+    @retry(attempts=3, base_delay=2.0)
     def fetch(self, url: str) -> ProductData:
-        # Import lazy supaya test/dev tanpa Playwright tetep bisa load module.
+        html = self._render(url)
+        return self._parse_html(html, url)
+
+    # --- I/O ---------------------------------------------------------------
+    def _render(self, url: str) -> str:
         try:
             from playwright.sync_api import sync_playwright
         except ImportError as e:  # pragma: no cover
@@ -31,21 +41,17 @@ class TikTokScraper(BaseScraper):
                 "dan `playwright install chromium`."
             ) from e
 
-        html = self._render(url, sync_playwright)
-        return self._parse(html, url)
-
-    def _render(self, url: str, sync_playwright) -> str:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
             ctx = browser.new_context()
             page = ctx.new_page()
             page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-            # Kasih waktu JS render produk
-            page.wait_for_timeout(2_000)
+            page.wait_for_timeout(2_000)  # biar JS sempat render
             content = page.content()
             browser.close()
             return content
 
+    # --- Pure parsing (unit-testable) --------------------------------------
     @staticmethod
     def _meta(html: str, prop: str) -> str | None:
         m = re.search(
@@ -55,13 +61,13 @@ class TikTokScraper(BaseScraper):
         )
         return m.group(1) if m else None
 
-    def _parse(self, html: str, url: str) -> ProductData:
-        title = self._meta(html, "og:title") or "Produk TikTok"
-        image_url = self._meta(html, "og:image")
-        description = self._meta(html, "og:description")
+    @classmethod
+    def _parse_html(cls, html: str, url: str) -> ProductData:
+        title = cls._meta(html, "og:title") or "Produk TikTok"
+        image_url = cls._meta(html, "og:image")
+        description = cls._meta(html, "og:description")
 
-        price = None
-        # Coba tarik dari JSON-LD kalau ada
+        price: str | None = None
         for m in re.finditer(
             r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.+?)</script>',
             html,

@@ -12,8 +12,10 @@ import httpx
 
 from app.config import get_settings
 from app.publishers.base import BasePublisher, PublishResult
+from app.utils.retry import retry
 
 GRAPH_BASE = "https://graph.threads.net/v1.0"
+_RETRYABLE = (httpx.TransportError, httpx.TimeoutException)
 
 
 class ThreadsPublisher(BasePublisher):
@@ -23,6 +25,7 @@ class ThreadsPublisher(BasePublisher):
         self.user_id = s.threads_user_id
         self._client = httpx.Client(timeout=30)
 
+    @retry(attempts=3, base_delay=1.5, exceptions=_RETRYABLE)
     def _create_container(self, text: str, image_url: str | None) -> str:
         params = {
             "access_token": self.token,
@@ -38,6 +41,7 @@ class ThreadsPublisher(BasePublisher):
         r.raise_for_status()
         return r.json()["id"]
 
+    @retry(attempts=3, base_delay=1.5, exceptions=_RETRYABLE)
     def _publish_container(self, container_id: str) -> str:
         r = self._client.post(
             f"{GRAPH_BASE}/{self.user_id}/threads_publish",

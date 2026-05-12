@@ -11,6 +11,9 @@ import httpx
 
 from app.config import get_settings
 from app.publishers.base import BasePublisher, PublishResult
+from app.utils.retry import retry
+
+_RETRYABLE = (httpx.TransportError, httpx.TimeoutException)
 
 
 class TwitterPublisher(BasePublisher):
@@ -38,6 +41,7 @@ class TwitterPublisher(BasePublisher):
             access_token_secret=s.x_access_token_secret,
         )
 
+    @retry(attempts=3, base_delay=1.0, exceptions=_RETRYABLE)
     def _download_image(self, image_url: str) -> Path:
         r = httpx.get(image_url, timeout=30, follow_redirects=True)
         r.raise_for_status()

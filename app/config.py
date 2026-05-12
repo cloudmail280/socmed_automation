@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     )
     scraper_timeout: int = 15
 
+    # Basic Auth untuk web UI (kosongkan keduanya untuk matikan auth)
+    auth_username: str = ""
+    auth_password: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
