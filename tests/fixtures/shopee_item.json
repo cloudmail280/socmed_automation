@@ -1,0 +1,13 @@
+{
+  "error": 0,
+  "error_msg": null,
+  "data": {
+    "itemid": 123456789,
+    "shopid": 987,
+    "name": "Sepatu Lari Pro X",
+    "price": 34990000000,
+    "images": ["abcd1234efgh5678"],
+    "description": "Sepatu lari ringan dengan bantalan responsif.",
+    "currency": "IDR"
+  }
+}
